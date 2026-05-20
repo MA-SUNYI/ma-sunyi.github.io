@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Pixel Sprite Editor</title>
-<!-- Adsterra 弹窗广告 固定位置无需改动 -->
-<script src="https://pl29501160.effectivecpmnetwork.com/b8/89/a3/b889a38ebaa78ce667425094a48b35c3.js"></script>
-
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -35,17 +32,6 @@
     background: #0f3460; color: #fff; border: 1px solid #1a1a5e; padding: 3px 8px;
     border-radius: 4px; font-family: inherit; font-size: 12px;
   }
-  .palette {
-    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;
-    background: #16213e; padding: 10px; border-radius: 8px; align-items: center;
-  }
-  .palette span { font-size: 13px; color: #aaa; margin-right: 6px; }
-  .swatch {
-    width: 32px; height: 32px; border: 2px solid transparent; border-radius: 4px;
-    cursor: pointer; position: relative;
-  }
-  .swatch.active { border-color: #fff; box-shadow: 0 0 6px #fff; }
-  .swatch .key { position: absolute; bottom: 1px; right: 2px; font-size: 9px; color: #fff; text-shadow: 1px 1px 0 #000; }
   .main-area {
     display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; justify-content: center;
   }
@@ -54,13 +40,41 @@
     cursor: crosshair; background: #000; flex-shrink: 0;
   }
   .canvas-wrap canvas { display: block; }
+  .right-panel {
+    display: flex; flex-direction: column; gap: 12px; width: 260px; flex-shrink: 0;
+  }
+  .palette-panel {
+    background: #16213e; padding: 10px; border-radius: 8px;
+  }
+  .palette-panel h3 { font-size: 13px; color: #00ddff; margin-bottom: 8px; }
+  .palette-grid {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;
+  }
+  .swatch {
+    width: 28px; height: 28px; border: 2px solid transparent; border-radius: 4px;
+    cursor: pointer; position: relative; flex-shrink: 0;
+  }
+  .swatch.active { border-color: #fff; box-shadow: 0 0 6px #fff; }
+  .swatch .key { position: absolute; bottom: 0px; right: 1px; font-size: 8px; color: #fff; text-shadow: 1px 1px 0 #000; }
+  .custom-color-row {
+    display: flex; gap: 6px; align-items: center; margin-top: 6px;
+  }
+  .custom-color-row label { font-size: 12px; color: #888; }
+  .custom-color-row input[type="color"] {
+    width: 32px; height: 28px; border: 1px solid #1a1a5e; border-radius: 4px; cursor: pointer; padding: 0;
+  }
+  .custom-color-row button {
+    background: #0f3460; color: #fff; border: 1px solid #1a1a5e; padding: 4px 8px;
+    border-radius: 4px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .custom-color-row button:hover { background: #1a5276; }
   .preview-panel {
     background: #16213e; padding: 12px; border-radius: 8px; text-align: center;
   }
   .preview-panel h3 { font-size: 13px; color: #00ddff; margin-bottom: 8px; }
   .preview-panel canvas { border: 1px solid #0f3460; image-rendering: pixelated; }
   .frames {
-    display: flex; gap: 8px; margin-top: 8px; align-items: center;
+    display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap;
   }
   .frames label { font-size: 13px; color: #aaa; }
   .frames button {
@@ -89,31 +103,42 @@
   .toast {
     position: fixed; top: 20px; right: 20px; background: #238636; color: #fff;
     padding: 10px 18px; border-radius: 6px; font-size: 14px; opacity: 0;
-    transition: opacity 0.3s; pointer-events: none;
+    transition: opacity 0.3s; pointer-events: none; z-index: 9999;
   }
   .toast.show { opacity: 1; }
   #file-input { display: none; }
 </style>
+<!-- Adsterra Popunder -->
+<script src="https://pl29501160.effectivecpmnetwork.com/b8/89/a3/b889a38ebaa78ce667425094a48b35c3.js"></script>
 </head>
 <body>
 
-<h1>🎨 Pixel Sprite Editor</h1>
+<h1>Pixel Sprite Editor</h1>
 
 <div class="toolbar">
   <label>工具:</label>
-  <button id="tool-draw" class="active" onclick="setTool('draw')">✏️ 画笔</button>
-  <button id="tool-erase" onclick="setTool('erase')">🧹 橡皮</button>
-  <button id="tool-fill" onclick="setTool('fill')">🪣 填充</button>
-  <button id="tool-pick" onclick="setTool('pick')">💉 吸色</button>
+  <button id="tool-draw" class="active" onclick="setTool('draw')">画笔</button>
+  <button id="tool-erase" onclick="setTool('erase')">橡皮</button>
+  <button id="tool-fill" onclick="setTool('fill')">填充</button>
+  <button id="tool-pick" onclick="setTool('pick')">吸色</button>
   <label style="margin-left:12px">网格:</label>
   <label><input type="checkbox" id="show-grid" checked onchange="render()"> 显示</label>
   <label style="margin-left:8px">尺寸:</label>
   <select id="grid-size" onchange="changeSize()">
-    <option value="16">16 × 16</option>
-    <option value="24">24 × 24</option>
-    <option value="27" selected>27 × 27</option>
-    <option value="32">32 × 32</option>
+    <option value="16">16×16</option>
+    <option value="24">24×24</option>
+    <option value="27" selected>27×27</option>
+    <option value="32">32×32</option>
+    <option value="48">48×48</option>
+    <option value="64">64×64</option>
+    <option value="custom">自定义...</option>
   </select>
+  <span id="custom-size-row" style="display:none;align-items:center;gap:4px">
+    <input type="number" id="custom-w" min="4" max="128" value="32" style="width:48px;background:#0f3460;color:#fff;border:1px solid #1a1a5e;padding:3px 4px;border-radius:4px;font-family:inherit;font-size:12px">
+    <span style="font-size:12px;color:#888">×</span>
+    <input type="number" id="custom-h" min="4" max="128" value="32" style="width:48px;background:#0f3460;color:#fff;border:1px solid #1a1a5e;padding:3px 4px;border-radius:4px;font-family:inherit;font-size:12px">
+    <button onclick="applyCustomSize()" style="background:#e94560;color:#fff;border:1px solid #e94560;padding:3px 8px;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit">应用</button>
+  </span>
   <label style="margin-left:12px">像素大小:</label>
   <select id="pixel-scale" onchange="resizeCanvas(); render()">
     <option value="10">10px</option>
@@ -121,7 +146,7 @@
     <option value="18" selected>18px</option>
     <option value="24">24px</option>
   </select>
-  <button class="import-btn" onclick="document.getElementById('file-input').click()">📁 导入图片</button>
+  <button class="import-btn" onclick="document.getElementById('file-input').value='';document.getElementById('file-input').click()">导入图片</button>
   <input type="file" id="file-input" accept="image/*" onchange="importImage(event)">
 </div>
 
@@ -131,19 +156,14 @@
     <option value="auto-palette">自动映射调色板</option>
     <option value="direct-color">直接采样颜色</option>
   </select>
-  <label>亮度阈值 (自动模式):</label>
-  <input type="range" id="threshold" min="10" max="200" value="80" style="width:120px">
+  <label>亮度阈值:</label>
+  <input type="range" id="threshold" min="10" max="200" value="80" style="width:100px">
   <span id="threshold-val" style="font-size:12px;color:#888">80</span>
   <label>透明阈值:</label>
-  <input type="range" id="alpha-threshold" min="0" max="255" value="30" style="width:120px">
+  <input type="range" id="alpha-threshold" min="0" max="255" value="30" style="width:100px">
   <span id="alpha-val" style="font-size:12px;color:#888">30</span>
-  <button onclick="applyImport()" style="background:#e94560;border:1px solid #e94560">✅ 应用像素化</button>
+  <button onclick="applyImport()" style="background:#e94560;border:1px solid #e94560">应用像素化</button>
   <button onclick="cancelImport()">取消</button>
-</div>
-
-<div class="palette">
-  <span>调色板:</span>
-  <div id="palette"></div>
 </div>
 
 <div class="main-area">
@@ -154,27 +174,38 @@
       <button id="frame-1" onclick="switchFrame(1)">帧 2</button>
       <label style="margin-left:16px">动画:</label>
       <label><input type="checkbox" id="anim-toggle" onchange="toggleAnim()"> 启用</label>
-      <span id="anim-label" style="font-size:12px;color:#888">⏸ 暂停</span>
+      <span id="anim-label" style="font-size:12px;color:#888"> 暂停</span>
     </div>
     <div class="canvas-wrap" id="canvas-wrap">
       <canvas id="editor"></canvas>
     </div>
   </div>
-  <div class="preview-panel">
-    <h3>实际大小预览 (PIXEL=2)</h3>
-    <canvas id="preview" width="54" height="54"></canvas>
-    <h3 style="margin-top:12px">2x 缩放预览</h3>
-    <canvas id="preview2x" width="108" height="108"></canvas>
+  <div class="right-panel">
+    <div class="palette-panel">
+      <h3>调色板</h3>
+      <div class="palette-grid" id="palette-grid"></div>
+      <div class="custom-color-row">
+        <label>自定义:</label>
+        <input type="color" id="custom-color-picker" value="#ff6600">
+        <button onclick="addCustomColor()">添加到调色板</button>
+      </div>
+    </div>
+    <div class="preview-panel">
+      <h3>实际大小 (PIXEL=2)</h3>
+      <canvas id="preview" width="54" height="54"></canvas>
+      <h3 style="margin-top:10px">2x 缩放</h3>
+      <canvas id="preview2x" width="108" height="108"></canvas>
+    </div>
   </div>
 </div>
 
 <div class="output-area">
   <div class="output-bar">
-    <button onclick="exportCode()">📋 生成 JS 代码</button>
-    <button onclick="copyCode()">📄 复制到剪贴板</button>
-    <button onclick="loadOriginal()">📥 加载原版飞机</button>
-    <button class="danger" onclick="clearFrame()">🗑️ 清空当前帧</button>
-    <button class="danger" onclick="clearAll()">🗑️ 清空所有</button>
+    <button onclick="exportCode()">生成 JS 代码</button>
+    <button onclick="copyCode()">复制到剪贴板</button>
+    <button onclick="loadOriginal()">加载原版飞机</button>
+    <button class="danger" onclick="clearFrame()">清空当前帧</button>
+    <button class="danger" onclick="clearAll()">清空所有</button>
   </div>
   <textarea id="output" readonly placeholder="点击「生成 JS 代码」查看输出..."></textarea>
 </div>
@@ -186,20 +217,42 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ========== 调色板（与 player.js 一致） ==========
+// ========== 扩展调色板 ==========
 const C = {
   '.': { color: 'transparent', name: '透明' },
   'W': { color: '#ffffff', name: '白色' },
+  'w': { color: '#cccccc', name: '浅灰' },
   'B': { color: '#00ddff', name: '亮蓝' },
   'b': { color: '#0099bb', name: '暗蓝' },
+  'L': { color: '#0066ff', name: '纯蓝' },
+  'l': { color: '#003399', name: '深蓝' },
   'K': { color: '#111111', name: '黑色' },
+  'k': { color: '#333333', name: '深灰' },
+  'g': { color: '#666666', name: '灰色' },
   'O': { color: '#ff8800', name: '橙色' },
+  'o': { color: '#cc5500', name: '深橙' },
   'Y': { color: '#ffcc00', name: '黄色' },
+  'y': { color: '#ffeb3b', name: '亮黄' },
+  'R': { color: '#ff3344', name: '红色' },
+  'r': { color: '#cc0000', name: '深红' },
+  'P': { color: '#cc44ff', name: '紫色' },
+  'p': { color: '#8800cc', name: '深紫' },
+  'G': { color: '#00ff88', name: '绿色' },
+  'g2':{ color: '#00cc44', name: '中绿' },
+  'g3':{ color: '#008822', name: '深绿' },
   'S': { color: '#446688', name: '灰蓝' },
   's': { color: '#334466', name: '暗灰蓝' },
-  'R': { color: '#ff3344', name: '红色' },
-  'G': { color: '#00ff88', name: '绿色' },
+  'T': { color: '#a0522a', name: '棕色' },
+  't': { color: '#8b4513', name: '深棕' },
+  'F': { color: '#ff69b4', name: '粉色' },
+  'f': { color: '#ff1493', name: '深粉' },
+  'C': { color: '#00ffff', name: '青色' },
+  'c': { color: '#00aaaa', name: '暗青' },
 };
+
+// 自定义颜色（用户添加，动态分配 key）
+let customColors = {};  // hex -> key
+let customColorList = []; // [{key, hex}]
 
 // ========== 原版飞机数据 ==========
 const ORIGINAL_SPRITES = [
@@ -269,10 +322,10 @@ let cellSize = 18;
 let currentColor = 'B';
 let currentTool = 'draw';
 let currentFrame = 0;
-let frames = [createEmptyGrid(27, 27), createEmptyGrid(27, 27)];
+let frames = [createEmptyGrid(27,27), createEmptyGrid(27,27)];
 let isDrawing = false;
 let animTimer = null;
-let importedImageData = null; // 存储导入的像素化数据
+let importedImageData = null;
 
 const canvas = document.getElementById('editor');
 const ctx = canvas.getContext('2d');
@@ -286,12 +339,11 @@ function init() {
   render();
   updatePreviews();
 
-  // 阈值滑块事件
-  document.getElementById('threshold').addEventListener('input', (e) => {
+  document.getElementById('threshold').addEventListener('input', e => {
     document.getElementById('threshold-val').textContent = e.target.value;
     if (importedImageData) applyImportPreview();
   });
-  document.getElementById('alpha-threshold').addEventListener('input', (e) => {
+  document.getElementById('alpha-threshold').addEventListener('input', e => {
     document.getElementById('alpha-val').textContent = e.target.value;
     if (importedImageData) applyImportPreview();
   });
@@ -321,10 +373,12 @@ function resizeCanvas() {
   canvas.height = gridH * cellSize;
 }
 
-// ========== 调色板 ==========
+// ========== 调色板（右侧面板） ==========
 function buildPalette() {
-  const container = document.getElementById('palette');
-  container.innerHTML = '';
+  const grid = document.getElementById('palette-grid');
+  grid.innerHTML = '';
+
+  // 内置颜色
   for (const [key, val] of Object.entries(C)) {
     if (key === '.') continue;
     const sw = document.createElement('div');
@@ -333,28 +387,62 @@ function buildPalette() {
     sw.title = val.name + ' (' + key + ')';
     sw.innerHTML = '<span class="key">' + key + '</span>';
     sw.onclick = () => { currentColor = key; updatePaletteUI(); };
-    container.appendChild(sw);
+    grid.appendChild(sw);
   }
+
+  // 自定义颜色
+  for (const item of customColorList) {
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (currentColor === item.key ? ' active' : '');
+    sw.style.background = item.hex;
+    sw.title = item.hex;
+    sw.innerHTML = '<span class="key">' + item.key + '</span>';
+    sw.onclick = () => { currentColor = item.key; updatePaletteUI(); };
+    grid.appendChild(sw);
+  }
+
   // 透明
   const er = document.createElement('div');
   er.className = 'swatch' + (currentColor === '.' ? ' active' : '');
   er.style.background = '#333';
-  er.title = '透明 (.)';
+  er.title = '透明 (X)';
   er.innerHTML = '<span class="key">X</span>';
   er.onclick = () => { currentColor = '.'; updatePaletteUI(); };
-  container.appendChild(er);
+  grid.appendChild(er);
 }
 
 function updatePaletteUI() {
   const swatches = document.querySelectorAll('.swatch');
-  const keys = Object.keys(C);
-  swatches.forEach((sw, i) => {
-    if (i < keys.length - 1) {
-      sw.classList.toggle('active', keys[i] === currentColor);
+  let idx = 0;
+  const builtInKeys = Object.keys(C);
+  for (const sw of swatches) {
+    if (idx < builtInKeys.length - 1) {
+      sw.classList.toggle('active', builtInKeys[idx] === currentColor);
+    } else if (idx < builtInKeys.length - 1 + customColorList.length) {
+      const ci = idx - (builtInKeys.length - 1);
+      sw.classList.toggle('active', customColorList[ci].key === currentColor);
     } else {
       sw.classList.toggle('active', currentColor === '.');
     }
-  });
+    idx++;
+  }
+}
+
+function addCustomColor() {
+  const hex = document.getElementById('custom-color-picker').value.toLowerCase();
+  if (customColors[hex]) {
+    currentColor = customColors[hex];
+    updatePaletteUI();
+    showToast('该颜色已在调色板中 (' + customColors[hex] + ')');
+    return;
+  }
+  // 分配 key: c1, c2, ...
+  const key = 'c' + (customColorList.length + 1);
+  customColors[hex] = key;
+  customColorList.push({ key, hex });
+  currentColor = key;
+  buildPalette();
+  showToast('已添加自定义颜色 ' + key + ' ' + hex);
 }
 
 // ========== 渲染 ==========
@@ -374,7 +462,7 @@ function render() {
     for (let x = 0; x < gridW; x++) {
       const ch = grid[y][x];
       if (ch !== '.') {
-        ctx.fillStyle = C[ch] ? C[ch].color : (ch.startsWith('#') ? ch : '#ff00ff');
+        ctx.fillStyle = getColor(ch);
         ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
       }
     }
@@ -390,6 +478,15 @@ function render() {
       ctx.beginPath(); ctx.moveTo(0, y * cellSize); ctx.lineTo(gridW * cellSize, y * cellSize); ctx.stroke();
     }
   }
+}
+
+function getColor(ch) {
+  if (C[ch]) return C[ch].color;
+  // 自定义颜色
+  for (const item of customColorList) {
+    if (item.key === ch) return item.hex;
+  }
+  return '#ff00ff'; // 未知颜色用洋红标记
 }
 
 // ========== 预览 ==========
@@ -409,7 +506,7 @@ function renderPreview(canvasId, scale) {
     for (let x = 0; x < gridW; x++) {
       const ch = grid[y][x];
       if (ch !== '.') {
-        pctx.fillStyle = C[ch] ? C[ch].color : (ch.startsWith('#') ? ch : '#ff00ff');
+        pctx.fillStyle = getColor(ch);
         pctx.fillRect(x * scale, y * scale, scale, scale);
       }
     }
@@ -445,7 +542,6 @@ canvas.addEventListener('wheel', (e) => {
   let v = parseInt(sel.value);
   if (e.deltaY < 0 && v < 40) v += 2;
   else if (e.deltaY > 0 && v > 6) v -= 2;
-  // 选择最接近的选项
   const opts = [...sel.options].map(o => parseInt(o.value));
   let closest = opts[0], minDiff = Math.abs(v - opts[0]);
   for (const o of opts) { if (Math.abs(v - o) < minDiff) { minDiff = Math.abs(v - o); closest = o; } }
@@ -491,13 +587,31 @@ function switchFrame(idx) {
   render(); updatePreviews();
 }
 function changeSize() {
-  const s = parseInt(document.getElementById('grid-size').value);
+  const sel = document.getElementById('grid-size');
+  if (sel.value === 'custom') {
+    document.getElementById('custom-size-row').style.display = 'inline-flex';
+    document.getElementById('custom-w').focus();
+    return;
+  }
+  document.getElementById('custom-size-row').style.display = 'none';
+  const s = parseInt(sel.value);
   gridW = s; gridH = s;
-  frames = [createEmptyGrid(s, s), createEmptyGrid(s, s)];
+  frames = [createEmptyGrid(s,s), createEmptyGrid(s,s)];
   resizeCanvas(); render(); updatePreviews();
 }
-function clearFrame() { frames[currentFrame] = createEmptyGrid(gridW, gridH); render(); updatePreviews(); showToast('🗑️ 当前帧已清空'); }
-function clearAll() { frames = [createEmptyGrid(gridW, gridH), createEmptyGrid(gridW, gridH)]; render(); updatePreviews(); showToast('🗑️ 全部清空'); }
+
+function applyCustomSize() {
+  const w = Math.max(4, Math.min(128, parseInt(document.getElementById('custom-w').value) || 32));
+  const h = Math.max(4, Math.min(128, parseInt(document.getElementById('custom-h').value) || 32));
+  document.getElementById('custom-w').value = w;
+  document.getElementById('custom-h').value = h;
+  gridW = w; gridH = h;
+  frames = [createEmptyGrid(w,h), createEmptyGrid(w,h)];
+  resizeCanvas(); render(); updatePreviews();
+  showToast('画布已调整为 ' + w + '×' + h);
+}
+function clearFrame() { frames[currentFrame] = createEmptyGrid(gridW, gridH); render(); updatePreviews(); showToast('当前帧已清空'); }
+function clearAll() { frames = [createEmptyGrid(gridW,gridH), createEmptyGrid(gridW,gridH)]; render(); updatePreviews(); showToast('全部清空'); }
 
 // ========== 动画预览 ==========
 function toggleAnim() {
@@ -509,52 +623,41 @@ function toggleAnim() {
       document.getElementById('frame-1').classList.toggle('active', currentFrame === 1);
       render(); updatePreviews();
     }, 200);
-    document.getElementById('anim-label').textContent = '▶ 播放中';
+    document.getElementById('anim-label').textContent = ' 播放中';
   } else {
     clearInterval(animTimer);
-    document.getElementById('anim-label').textContent = '⏸ 暂停';
+    document.getElementById('anim-label').textContent = ' 暂停';
   }
 }
 
-// ========== 图片导入 & 像素化 ==========
+// ========== 图片导入 ==========
 function importImage(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
     const img = new Image();
-    img.onload = function() {
-      pixelateImage(img);
-    };
+    img.onload = function() { pixelateImage(img); };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
 function pixelateImage(img) {
-  // 缩放到 gridW x gridH
   const tmpCanvas = document.createElement('canvas');
-  tmpCanvas.width = gridW;
-  tmpCanvas.height = gridH;
+  tmpCanvas.width = gridW; tmpCanvas.height = gridH;
   const tmpCtx = tmpCanvas.getContext('2d');
   tmpCtx.imageSmoothingEnabled = true;
   tmpCtx.imageSmoothingQuality = 'medium';
-
-  // 计算缩放（保持比例，居中裁剪）
-  const scaleX = gridW / img.width;
-  const scaleY = gridH / img.height;
+  const scaleX = gridW / img.width, scaleY = gridH / img.height;
   const scale = Math.max(scaleX, scaleY);
-  const sw = gridW / scale;
-  const sh = gridH / scale;
-  const sx = (img.width - sw) / 2;
-  const sy = (img.height - sh) / 2;
-
+  const sw = gridW / scale, sh = gridH / scale;
+  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
   tmpCtx.drawImage(img, sx, sy, sw, sh, 0, 0, gridW, gridH);
   importedImageData = tmpCtx.getImageData(0, 0, gridW, gridH);
-
   document.getElementById('import-settings').style.display = 'flex';
   applyImportPreview();
-  showToast('📷 图片已加载，点击「应用像素化」确认');
+  showToast('图片已加载，调整参数后点「应用像素化」');
 }
 
 function applyImportPreview() {
@@ -562,24 +665,16 @@ function applyImportPreview() {
   const mode = document.getElementById('import-mode').value;
   const brightnessThreshold = parseInt(document.getElementById('threshold').value);
   const alphaThreshold = parseInt(document.getElementById('alpha-threshold').value);
-
   const grid = frames[currentFrame];
   const data = importedImageData.data;
-
   for (let y = 0; y < gridH; y++) {
     for (let x = 0; x < gridW; x++) {
       const i = (y * gridW + x) * 4;
       const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
-
-      if (a < alphaThreshold) {
-        grid[y][x] = '.';
-        continue;
-      }
-
+      if (a < alphaThreshold) { grid[y][x] = '.'; continue; }
       if (mode === 'auto-palette') {
         grid[y][x] = mapColorToPalette(r, g, b, brightnessThreshold);
       } else {
-        // 直接模式：存为 hex 颜色（扩展调色板）
         grid[y][x] = '#' + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
       }
     }
@@ -588,112 +683,77 @@ function applyImportPreview() {
 }
 
 function mapColorToPalette(r, g, b, threshold) {
-  // 计算亮度
   const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-
-  if (brightness < threshold * 0.15) return 'K';       // 很暗 → 黑色
-  if (brightness < threshold * 0.4) return 's';         // 暗 → 暗灰蓝
-  if (brightness < threshold * 0.6) return 'S';         // 中暗 → 灰蓝
-  if (brightness < threshold * 0.8) return 'b';         // 中亮 → 暗蓝
-
-  // 亮色：按色相分类
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  if (brightness < threshold * 0.15) return 'K';
+  if (brightness < threshold * 0.35) return 's';
+  if (brightness < threshold * 0.55) return 'S';
+  if (brightness < threshold * 0.75) return 'b';
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
   const saturation = max === 0 ? 0 : (max - min) / max;
-
-  if (saturation < 0.2) return 'W';                     // 低饱和 → 白色
-  if (saturation < 0.35) return 'B';                     // 中饱和 → 亮蓝
-
-  // 高饱和：判断色相
+  if (saturation < 0.2) return 'W';
+  if (saturation < 0.35) return 'B';
   let hue;
   if (max === min) hue = 0;
   else if (max === r) hue = 60 * ((g - b) / (max - min));
   else if (max === g) hue = 60 * (2 + (b - r) / (max - min));
   else hue = 60 * (4 + (r - g) / (max - min));
   if (hue < 0) hue += 360;
-
-  if (hue < 30 || hue >= 340) return 'R';               // 红
-  if (hue < 70) return 'Y';                              // 黄
-  if (hue < 50) return 'O';                              // 橙
-  if (hue < 180) return 'G';                             // 绿
-  if (hue < 260) return 'B';                             // 蓝
-  return 'B';                                            // 紫蓝
+  if (hue < 15 || hue >= 345) return 'R';
+  if (hue < 45) return 'O';
+  if (hue < 70) return 'Y';
+  if (hue < 160) return 'G';
+  if (hue < 260) return 'B';
+  return 'P';
 }
 
 function applyImport() {
-  // 预览已经是实际数据了，直接确认
   importedImageData = null;
   document.getElementById('import-settings').style.display = 'none';
-  showToast('✅ 像素化已应用！可以继续手动微调');
+  showToast('像素化已应用！可继续手动微调');
 }
 
 function cancelImport() {
-  // 恢复到导入前（重新加载原版）
   importedImageData = null;
   document.getElementById('import-settings').style.display = 'none';
   loadSpriteData(0, ORIGINAL_SPRITES[0]);
   loadSpriteData(1, ORIGINAL_SPRITES[1]);
   resizeCanvas(); render(); updatePreviews();
-  showToast('❌ 已取消导入');
+  showToast('已取消导入');
 }
 
 // ========== 导出代码 ==========
 function exportCode() {
-  // 收集所有用到的颜色（包括自定义 hex）
-  const usedColors = new Set();
-  const isCustomColor = new Set();
-  frames.forEach(f => f.forEach(row => row.forEach(ch => {
-    if (ch !== '.') {
-      usedColors.add(ch);
-      if (ch.startsWith('#')) isCustomColor.add(ch);
-    }
-  })));
+  const usedKeys = new Set();
+  frames.forEach(f => f.forEach(row => row.forEach(ch => { if (ch !== '.') usedKeys.add(ch); })));
 
   let cLines = [];
-  // 先加调色板里的
   for (const [key, val] of Object.entries(C)) {
-    if (key === '.' || usedColors.has(key)) {
-      cLines.push('  ' + key + ": '" + val.color + "'");
-    }
+    if (key === '.' || usedKeys.has(key)) cLines.push("  " + key + ": '" + val.color + "'");
   }
-  // 加自定义颜色（分配新 key）
-  const customKeys = {};
-  let keyIdx = 1;
-  isCustomColor.forEach(hex => {
-    const k = 'c' + keyIdx++;
-    customKeys[hex] = k;
-    cLines.push('  ' + k + ": '" + hex + "'");
-  });
+  for (const item of customColorList) {
+    if (usedKeys.has(item.key)) cLines.push("  " + item.key + ": '" + item.hex + "'");
+  }
 
-  // 替换自定义颜色为 key
-  const sprite0 = frames[0].map(row => row.map(ch => customKeys[ch] || ch).join(''));
-  const sprite1 = frames[1].map(row => row.map(ch => customKeys[ch] || ch).join(''));
-
-  const code = `var SPRITES = [
-  [
-${sprite0.map(line => '    \'' + line + '\',').join('\n')}
-  ],
-  [
-${sprite1.map(line => '    \'' + line + '\',').join('\n')}
-  ]
-];`;
+  const sprite0 = frames[0].map(row => row.map(ch => ch).join(''));
+  const sprite1 = frames[1].map(row => row.map(ch => ch).join(''));
 
   let note = '// 复制以上代码替换 player.js 中的 C 和 SPRITES 即可。';
-  if (gridW !== 27 || gridH !== 27) {
-    note += '\n// ⚠️ 尺寸已变为 ' + gridW + '×' + gridH + '，记得同步更新 PLAYER_W 和 PLAYER_H。';
-  }
+  if (gridW !== 27 || gridH !== 27) note += '\n// 尺寸已变为 ' + gridW + '×' + gridH + '，记得同步更新 PLAYER_W 和 PLAYER_H。';
 
-  const fullCode = `var C = {\n${cLines.join(',\n')}\n};\n\n` + code + '\n\n' + note;
+  const fullCode = "var C = {\n" + cLines.join(',\n') + "\n};\n\nvar SPRITES = [\n  [\n" +
+    sprite0.map(line => "    '" + line + "',").join('\n') + "\n  ],\n  [\n" +
+    sprite1.map(line => "    '" + line + "',").join('\n') + "\n  ]\n];\n\n" + note;
 
   document.getElementById('output').value = fullCode;
-  showToast('✅ 代码已生成！');
+  showToast('代码已生成！');
 }
 
 function copyCode() {
   const ta = document.getElementById('output');
   if (!ta.value.trim()) exportCode();
   navigator.clipboard.writeText(ta.value).then(() => {
-    showToast('📋 已复制到剪贴板！');
-  }).catch(() => { ta.select(); document.execCommand('copy'); showToast('📋 已复制！'); });
+    showToast('已复制到剪贴板！');
+  }).catch(() => { ta.select(); document.execCommand('copy'); showToast('已复制！'); });
 }
 
 function loadOriginal() {
@@ -705,7 +765,7 @@ function loadOriginal() {
   document.getElementById('frame-0').classList.add('active');
   document.getElementById('frame-1').classList.remove('active');
   resizeCanvas(); render(); updatePreviews();
-  showToast('📥 已加载原版飞机');
+  showToast('已加载原版飞机');
 }
 
 // ========== Toast ==========
@@ -730,17 +790,16 @@ document.addEventListener('keydown', (e) => {
 // ========== 启动 ==========
 init();
 </script>
-
+<!-- Adsterra Banner -->
 <script>
-  atOptions = {
-    'key' : 'c4f6a3ee88365c9a20d2863c971c2fb5',
-    'format' : 'iframe',
-    'height' : 90,
-    'width' : 728,
-    'params' : {}
-  };
+ atOptions = {
+ 'key' : '0023da4b91e5eb822e7bc17f1764a242',
+ 'format' : 'iframe',
+ 'height' : 50,
+ 'width' : 320,
+ 'params' : {}
+ };
 </script>
-<script src="https://www.highperformanceformat.com/c4f6a3ee88365c9a20d2863c971c2fb5/invoke.js"></script>
-
+<script src="https://www.highperformanceformat.com/0023da4b91e5eb822e7bc17f1764a242/invoke.js"></script>
 </body>
 </html>
