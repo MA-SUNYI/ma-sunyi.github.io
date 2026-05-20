@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Pixel Sprite Editor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0; font-family: 'Consolas', 'Monaco', monospace;
+    display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 16px;
+  }
+  h1 { font-size: 20px; margin-bottom: 12px; color: #00ddff; }
+  .toolbar {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px;
+    background: #16213e; padding: 10px 14px; border-radius: 8px;
+  }
+  .toolbar label { font-size: 13px; color: #aaa; }
+  .toolbar select, .toolbar button {
+    background: #0f3460; color: #fff; border: 1px solid #1a1a5e; padding: 5px 10px;
+    border-radius: 4px; font-family: inherit; font-size: 13px; cursor: pointer;
+  }
+  .toolbar button:hover { background: #1a5276; }
+  .toolbar button.active { background: #e94560; border-color: #e94560; }
+  .toolbar button.import-btn { background: #238636; border-color: #238636; }
+  .toolbar button.import-btn:hover { background: #2ea043; }
+  .import-settings {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 8px;
+    background: #16213e; padding: 8px 14px; border-radius: 8px;
+  }
+  .import-settings label { font-size: 12px; color: #888; }
+  .import-settings select, .import-settings input {
+    background: #0f3460; color: #fff; border: 1px solid #1a1a5e; padding: 3px 8px;
+    border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  .palette {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;
+    background: #16213e; padding: 10px; border-radius: 8px; align-items: center;
+  }
+  .palette span { font-size: 13px; color: #aaa; margin-right: 6px; }
+  .swatch {
+    width: 32px; height: 32px; border: 2px solid transparent; border-radius: 4px;
+    cursor: pointer; position: relative;
+  }
+  .swatch.active { border-color: #fff; box-shadow: 0 0 6px #fff; }
+  .swatch .key { position: absolute; bottom: 1px; right: 2px; font-size: 9px; color: #fff; text-shadow: 1px 1px 0 #000; }
+  .main-area {
+    display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; justify-content: center;
+  }
+  .canvas-wrap {
+    position: relative; border: 2px solid #0f3460; border-radius: 4px;
+    cursor: crosshair; background: #000; flex-shrink: 0;
+  }
+  .canvas-wrap canvas { display: block; }
+  .preview-panel {
+    background: #16213e; padding: 12px; border-radius: 8px; text-align: center;
+  }
+  .preview-panel h3 { font-size: 13px; color: #00ddff; margin-bottom: 8px; }
+  .preview-panel canvas { border: 1px solid #0f3460; image-rendering: pixelated; }
+  .frames {
+    display: flex; gap: 8px; margin-top: 8px; align-items: center;
+  }
+  .frames label { font-size: 13px; color: #aaa; }
+  .frames button {
+    background: #0f3460; color: #fff; border: 1px solid #1a1a5e; padding: 5px 12px;
+    border-radius: 4px; font-family: inherit; cursor: pointer;
+  }
+  .frames button.active { background: #e94560; border-color: #e94560; }
+  .output-area {
+    margin-top: 14px; width: 100%; max-width: 900px;
+  }
+  .output-area textarea {
+    width: 100%; height: 200px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d;
+    border-radius: 6px; padding: 10px; font-family: inherit; font-size: 12px; resize: vertical;
+  }
+  .output-bar {
+    display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+  }
+  .output-bar button {
+    background: #238636; color: #fff; border: none; padding: 6px 16px;
+    border-radius: 4px; font-family: inherit; cursor: pointer; font-size: 13px;
+  }
+  .output-bar button:hover { background: #2ea043; }
+  .output-bar button.danger { background: #e94560; }
+  .output-bar button.danger:hover { background: #c0392b; }
+  .info { font-size: 12px; color: #666; margin-top: 8px; }
+  .toast {
+    position: fixed; top: 20px; right: 20px; background: #238636; color: #fff;
+    padding: 10px 18px; border-radius: 6px; font-size: 14px; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  #file-input { display: none; }
+</style>
+</head>
+<body>
+
+<h1>🎨 Pixel Sprite Editor</h1>
+
+<div class="toolbar">
+  <label>工具:</label>
+  <button id="tool-draw" class="active" onclick="setTool('draw')">✏️ 画笔</button>
+  <button id="tool-erase" onclick="setTool('erase')">🧹 橡皮</button>
+  <button id="tool-fill" onclick="setTool('fill')">🪣 填充</button>
+  <button id="tool-pick" onclick="setTool('pick')">💉 吸色</button>
+  <label style="margin-left:12px">网格:</label>
+  <label><input type="checkbox" id="show-grid" checked onchange="render()"> 显示</label>
+  <label style="margin-left:8px">尺寸:</label>
+  <select id="grid-size" onchange="changeSize()">
+    <option value="16">16 × 16</option>
+    <option value="24">24 × 24</option>
+    <option value="27" selected>27 × 27</option>
+    <option value="32">32 × 32</option>
+  </select>
+  <label style="margin-left:12px">像素大小:</label>
+  <select id="pixel-scale" onchange="resizeCanvas(); render()">
+    <option value="10">10px</option>
+    <option value="14">14px</option>
+    <option value="18" selected>18px</option>
+    <option value="24">24px</option>
+  </select>
+  <button class="import-btn" onclick="document.getElementById('file-input').click()">📁 导入图片</button>
+  <input type="file" id="file-input" accept="image/*" onchange="importImage(event)">
+</div>
+
+<div class="import-settings" id="import-settings" style="display:none">
+  <label>导入模式:</label>
+  <select id="import-mode">
+    <option value="auto-palette">自动映射调色板</option>
+    <option value="direct-color">直接采样颜色</option>
+  </select>
+  <label>亮度阈值 (自动模式):</label>
+  <input type="range" id="threshold" min="10" max="200" value="80" style="width:120px">
+  <span id="threshold-val" style="font-size:12px;color:#888">80</span>
+  <label>透明阈值:</label>
+  <input type="range" id="alpha-threshold" min="0" max="255" value="30" style="width:120px">
+  <span id="alpha-val" style="font-size:12px;color:#888">30</span>
+  <button onclick="applyImport()" style="background:#e94560;border:1px solid #e94560">✅ 应用像素化</button>
+  <button onclick="cancelImport()">取消</button>
+</div>
+
+<div class="palette">
+  <span>调色板:</span>
+  <div id="palette"></div>
+</div>
+
+<div class="main-area">
+  <div>
+    <div class="frames">
+      <label>帧:</label>
+      <button id="frame-0" class="active" onclick="switchFrame(0)">帧 1</button>
+      <button id="frame-1" onclick="switchFrame(1)">帧 2</button>
+      <label style="margin-left:16px">动画:</label>
+      <label><input type="checkbox" id="anim-toggle" onchange="toggleAnim()"> 启用</label>
+      <span id="anim-label" style="font-size:12px;color:#888">⏸ 暂停</span>
+    </div>
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="editor"></canvas>
+    </div>
+  </div>
+  <div class="preview-panel">
+    <h3>实际大小预览 (PIXEL=2)</h3>
+    <canvas id="preview" width="54" height="54"></canvas>
+    <h3 style="margin-top:12px">2x 缩放预览</h3>
+    <canvas id="preview2x" width="108" height="108"></canvas>
+  </div>
+</div>
+
+<div class="output-area">
+  <div class="output-bar">
+    <button onclick="exportCode()">📋 生成 JS 代码</button>
+    <button onclick="copyCode()">📄 复制到剪贴板</button>
+    <button onclick="loadOriginal()">📥 加载原版飞机</button>
+    <button class="danger" onclick="clearFrame()">🗑️ 清空当前帧</button>
+    <button class="danger" onclick="clearAll()">🗑️ 清空所有</button>
+  </div>
+  <textarea id="output" readonly placeholder="点击「生成 JS 代码」查看输出..."></textarea>
+</div>
+
+<div class="info">
+  左键绘制 · 右键橡皮 · 滚轮缩放 · 导入图片自动像素化 · 画完点「生成 JS 代码」
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== 调色板（与 player.js 一致） ==========
+const C = {
+  '.': { color: 'transparent', name: '透明' },
+  'W': { color: '#ffffff', name: '白色' },
+  'B': { color: '#00ddff', name: '亮蓝' },
+  'b': { color: '#0099bb', name: '暗蓝' },
+  'K': { color: '#111111', name: '黑色' },
+  'O': { color: '#ff8800', name: '橙色' },
+  'Y': { color: '#ffcc00', name: '黄色' },
+  'S': { color: '#446688', name: '灰蓝' },
+  's': { color: '#334466', name: '暗灰蓝' },
+  'R': { color: '#ff3344', name: '红色' },
+  'G': { color: '#00ff88', name: '绿色' },
+};
+
+// ========== 原版飞机数据 ==========
+const ORIGINAL_SPRITES = [
+  [
+    '.........................',
+    '............W............',
+    '...........WYW...........',
+    '..........WBBbW..........',
+    '.........WBBbbBW.........',
+    '........WBBbbbbBW........',
+    '.......WBBbbbbbbBW.......',
+    '......WBBbbbbbbbbBW......',
+    '.....WBBbbbbbbbbbBBW.....',
+    '....WBBbbbbbbbbbbbbBW....',
+    '...WBBbbbbSSbbbbbbbBBW...',
+    '..WBBbbbSSSSSbbbBBBBWW...',
+    '.SWBBBSSSSSSSSSBBBBbWKS..',
+    'SSWBBBBSSSSSSSSBBBBbbKS..',
+    'SSBBBBBSSSSSSSSSBBBBKKKS.',
+    '.SKBBBBBSSSSSSBBBBBBKKSS.',
+    '..SKBBBBBBSSBBBBBBBKKSS..',
+    '..SSBBBBBBBBBBBBBBBKKSS..',
+    '...SSBBBBBBBBBBBBBBKKS...',
+    '....SSBBBBBBBBBBBBKKSS...',
+    '...KKSSBBBBBBBBBBBKS.....',
+    '..KKKSSBBBBBBBBBBKS......',
+    '.KKKK.SBBBBBBBBBKS.......',
+    '.KKK..SBBBBBBBBKSS.......',
+    '.KK...SBKBBBKBKS.SS......',
+    '......KK..BB..KK.OO......',
+    '.........................'
+  ],
+  [
+    '.........................',
+    '............W............',
+    '...........WYW...........',
+    '..........WBBbW..........',
+    '.........WBBbbBW.........',
+    '........WBBbbbbBW........',
+    '.......WBBbbbbbbBW.......',
+    '......WBBbbbbbbbbBW......',
+    '.....WBBbbbbbbbbbBBW.....',
+    '....WBBbbbbbbbbbbbbBW....',
+    '...WBBbbbbSSbbbbbbbBBW...',
+    '..WBBbbbSSSSSbbbBBBBWW...',
+    '.SWBBBSSSSSSSSSBBBBbWKS..',
+    'SSWBBBBSSSSSSSSBBBBbbKS..',
+    'SSBBBBBSSSSSSSSSBBBBKKKS.',
+    '.SKBBBBBSSSSSSBBBBBBKKSS.',
+    '..SKBBBBBBSSBBBBBBBKKSS..',
+    '..SSBBBBBBBBBBBBBBBKKSS..',
+    '...SSBBBBBBBBBBBBBBKKS...',
+    '....SSBBBBBBBBBBBBKKSS...',
+    '...KKSSBBBBBBBBBBBKS.....',
+    '..KKKSSBBBBBBBBBBKS......',
+    '.KKKK.SBBBBBBBBBKS.......',
+    '.KKK..SBBBBBBBBKSS.......',
+    '.KK...SBKBBBKBKS.SS......',
+    '......KK..BB..KK.OOO.....',
+    '.........................'
+  ]
+];
+
+// ========== 状态 ==========
+let gridW = 27, gridH = 27;
+let cellSize = 18;
+let currentColor = 'B';
+let currentTool = 'draw';
+let currentFrame = 0;
+let frames = [createEmptyGrid(27, 27), createEmptyGrid(27, 27)];
+let isDrawing = false;
+let animTimer = null;
+let importedImageData = null; // 存储导入的像素化数据
+
+const canvas = document.getElementById('editor');
+const ctx = canvas.getContext('2d');
+
+// ========== 初始化 ==========
+function init() {
+  buildPalette();
+  loadSpriteData(0, ORIGINAL_SPRITES[0]);
+  loadSpriteData(1, ORIGINAL_SPRITES[1]);
+  resizeCanvas();
+  render();
+  updatePreviews();
+
+  // 阈值滑块事件
+  document.getElementById('threshold').addEventListener('input', (e) => {
+    document.getElementById('threshold-val').textContent = e.target.value;
+    if (importedImageData) applyImportPreview();
+  });
+  document.getElementById('alpha-threshold').addEventListener('input', (e) => {
+    document.getElementById('alpha-val').textContent = e.target.value;
+    if (importedImageData) applyImportPreview();
+  });
+  document.getElementById('import-mode').addEventListener('change', () => {
+    if (importedImageData) applyImportPreview();
+  });
+}
+
+function createEmptyGrid(w, h) {
+  const grid = [];
+  for (let y = 0; y < h; y++) grid.push(new Array(w).fill('.'));
+  return grid;
+}
+
+function loadSpriteData(frameIdx, sprite) {
+  const h = sprite.length;
+  const w = sprite[0].length;
+  gridW = w; gridH = h;
+  frames[frameIdx] = [];
+  for (let y = 0; y < h; y++) frames[frameIdx].push(sprite[y].split(''));
+  document.getElementById('grid-size').value = w === h ? String(w) : '27';
+}
+
+function resizeCanvas() {
+  cellSize = parseInt(document.getElementById('pixel-scale').value);
+  canvas.width = gridW * cellSize;
+  canvas.height = gridH * cellSize;
+}
+
+// ========== 调色板 ==========
+function buildPalette() {
+  const container = document.getElementById('palette');
+  container.innerHTML = '';
+  for (const [key, val] of Object.entries(C)) {
+    if (key === '.') continue;
+    const sw = document.createElement('div');
+    sw.className = 'swatch' + (key === currentColor ? ' active' : '');
+    sw.style.background = val.color;
+    sw.title = val.name + ' (' + key + ')';
+    sw.innerHTML = '<span class="key">' + key + '</span>';
+    sw.onclick = () => { currentColor = key; updatePaletteUI(); };
+    container.appendChild(sw);
+  }
+  // 透明
+  const er = document.createElement('div');
+  er.className = 'swatch' + (currentColor === '.' ? ' active' : '');
+  er.style.background = '#333';
+  er.title = '透明 (.)';
+  er.innerHTML = '<span class="key">X</span>';
+  er.onclick = () => { currentColor = '.'; updatePaletteUI(); };
+  container.appendChild(er);
+}
+
+function updatePaletteUI() {
+  const swatches = document.querySelectorAll('.swatch');
+  const keys = Object.keys(C);
+  swatches.forEach((sw, i) => {
+    if (i < keys.length - 1) {
+      sw.classList.toggle('active', keys[i] === currentColor);
+    } else {
+      sw.classList.toggle('active', currentColor === '.');
+    }
+  });
+}
+
+// ========== 渲染 ==========
+function render() {
+  const showGrid = document.getElementById('show-grid').checked;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let y = 0; y < gridH; y++) {
+    for (let x = 0; x < gridW; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? '#1a1a1a' : '#222';
+      ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+    }
+  }
+
+  const grid = frames[currentFrame];
+  for (let y = 0; y < gridH; y++) {
+    for (let x = 0; x < gridW; x++) {
+      const ch = grid[y][x];
+      if (ch !== '.') {
+        ctx.fillStyle = C[ch] ? C[ch].color : (ch.startsWith('#') ? ch : '#ff00ff');
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+      }
+    }
+  }
+
+  if (showGrid) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= gridW; x++) {
+      ctx.beginPath(); ctx.moveTo(x * cellSize, 0); ctx.lineTo(x * cellSize, gridH * cellSize); ctx.stroke();
+    }
+    for (let y = 0; y <= gridH; y++) {
+      ctx.beginPath(); ctx.moveTo(0, y * cellSize); ctx.lineTo(gridW * cellSize, y * cellSize); ctx.stroke();
+    }
+  }
+}
+
+// ========== 预览 ==========
+function updatePreviews() {
+  renderPreview('preview', 2);
+  renderPreview('preview2x', 4);
+}
+
+function renderPreview(canvasId, scale) {
+  const pc = document.getElementById(canvasId);
+  pc.width = gridW * scale;
+  pc.height = gridH * scale;
+  const pctx = pc.getContext('2d');
+  pctx.clearRect(0, 0, pc.width, pc.height);
+  const grid = frames[currentFrame];
+  for (let y = 0; y < gridH; y++) {
+    for (let x = 0; x < gridW; x++) {
+      const ch = grid[y][x];
+      if (ch !== '.') {
+        pctx.fillStyle = C[ch] ? C[ch].color : (ch.startsWith('#') ? ch : '#ff00ff');
+        pctx.fillRect(x * scale, y * scale, scale, scale);
+      }
+    }
+  }
+}
+
+// ========== 鼠标事件 ==========
+canvas.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  const { x, y } = getCell(e);
+  if (x < 0 || x >= gridW || y < 0 || y >= gridH) return;
+  if (e.button === 2) {
+    setPixel(x, y, '.'); isDrawing = true; canvas._rightDraw = true;
+  } else {
+    applyTool(x, y); isDrawing = true; canvas._rightDraw = false;
+  }
+  render(); updatePreviews();
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDrawing) return;
+  const { x, y } = getCell(e);
+  if (x < 0 || x >= gridW || y < 0 || y >= gridH) return;
+  if (canvas._rightDraw) setPixel(x, y, '.');
+  else if (currentTool === 'draw') setPixel(x, y, currentColor === '.' ? 'B' : currentColor);
+  render(); updatePreviews();
+});
+canvas.addEventListener('mouseup', () => { isDrawing = false; });
+canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const sel = document.getElementById('pixel-scale');
+  let v = parseInt(sel.value);
+  if (e.deltaY < 0 && v < 40) v += 2;
+  else if (e.deltaY > 0 && v > 6) v -= 2;
+  // 选择最接近的选项
+  const opts = [...sel.options].map(o => parseInt(o.value));
+  let closest = opts[0], minDiff = Math.abs(v - opts[0]);
+  for (const o of opts) { if (Math.abs(v - o) < minDiff) { minDiff = Math.abs(v - o); closest = o; } }
+  sel.value = closest;
+  resizeCanvas(); render();
+}, { passive: false });
+
+function getCell(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width, sy = canvas.height / rect.height;
+  return { x: Math.floor((e.clientX - rect.left) * sx / cellSize), y: Math.floor((e.clientY - rect.top) * sy / cellSize) };
+}
+function setPixel(x, y, ch) { frames[currentFrame][y][x] = ch; }
+function applyTool(x, y) {
+  if (currentTool === 'draw') setPixel(x, y, currentColor);
+  else if (currentTool === 'erase') setPixel(x, y, '.');
+  else if (currentTool === 'fill') floodFill(x, y, currentColor);
+  else if (currentTool === 'pick') { currentColor = frames[currentFrame][y][x]; updatePaletteUI(); }
+}
+function floodFill(sx, sy, newCh) {
+  const grid = frames[currentFrame], target = grid[sy][sx];
+  if (target === newCh) return;
+  const stack = [[sx, sy]], visited = new Set();
+  while (stack.length) {
+    const [cx, cy] = stack.pop(), key = cx + ',' + cy;
+    if (visited.has(key) || cx < 0 || cx >= gridW || cy < 0 || cy >= gridH || grid[cy][cx] !== target) continue;
+    visited.add(key); grid[cy][cx] = newCh;
+    stack.push([cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]);
+  }
+}
+
+// ========== 工具/帧/尺寸 ==========
+function setTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.toolbar button').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('tool-' + tool); if (el) el.classList.add('active');
+  canvas.style.cursor = tool === 'pick' ? 'copy' : tool === 'fill' ? 'cell' : 'crosshair';
+}
+function switchFrame(idx) {
+  currentFrame = idx;
+  document.getElementById('frame-0').classList.toggle('active', idx === 0);
+  document.getElementById('frame-1').classList.toggle('active', idx === 1);
+  render(); updatePreviews();
+}
+function changeSize() {
+  const s = parseInt(document.getElementById('grid-size').value);
+  gridW = s; gridH = s;
+  frames = [createEmptyGrid(s, s), createEmptyGrid(s, s)];
+  resizeCanvas(); render(); updatePreviews();
+}
+function clearFrame() { frames[currentFrame] = createEmptyGrid(gridW, gridH); render(); updatePreviews(); showToast('🗑️ 当前帧已清空'); }
+function clearAll() { frames = [createEmptyGrid(gridW, gridH), createEmptyGrid(gridW, gridH)]; render(); updatePreviews(); showToast('🗑️ 全部清空'); }
+
+// ========== 动画预览 ==========
+function toggleAnim() {
+  const on = document.getElementById('anim-toggle').checked;
+  if (on) {
+    animTimer = setInterval(() => {
+      currentFrame = (currentFrame + 1) % 2;
+      document.getElementById('frame-0').classList.toggle('active', currentFrame === 0);
+      document.getElementById('frame-1').classList.toggle('active', currentFrame === 1);
+      render(); updatePreviews();
+    }, 200);
+    document.getElementById('anim-label').textContent = '▶ 播放中';
+  } else {
+    clearInterval(animTimer);
+    document.getElementById('anim-label').textContent = '⏸ 暂停';
+  }
+}
+
+// ========== 图片导入 & 像素化 ==========
+function importImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      pixelateImage(img);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function pixelateImage(img) {
+  // 缩放到 gridW x gridH
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = gridW;
+  tmpCanvas.height = gridH;
+  const tmpCtx = tmpCanvas.getContext('2d');
+  tmpCtx.imageSmoothingEnabled = true;
+  tmpCtx.imageSmoothingQuality = 'medium';
+
+  // 计算缩放（保持比例，居中裁剪）
+  const scaleX = gridW / img.width;
+  const scaleY = gridH / img.height;
+  const scale = Math.max(scaleX, scaleY);
+  const sw = gridW / scale;
+  const sh = gridH / scale;
+  const sx = (img.width - sw) / 2;
+  const sy = (img.height - sh) / 2;
+
+  tmpCtx.drawImage(img, sx, sy, sw, sh, 0, 0, gridW, gridH);
+  importedImageData = tmpCtx.getImageData(0, 0, gridW, gridH);
+
+  document.getElementById('import-settings').style.display = 'flex';
+  applyImportPreview();
+  showToast('📷 图片已加载，点击「应用像素化」确认');
+}
+
+function applyImportPreview() {
+  if (!importedImageData) return;
+  const mode = document.getElementById('import-mode').value;
+  const brightnessThreshold = parseInt(document.getElementById('threshold').value);
+  const alphaThreshold = parseInt(document.getElementById('alpha-threshold').value);
+
+  const grid = frames[currentFrame];
+  const data = importedImageData.data;
+
+  for (let y = 0; y < gridH; y++) {
+    for (let x = 0; x < gridW; x++) {
+      const i = (y * gridW + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+
+      if (a < alphaThreshold) {
+        grid[y][x] = '.';
+        continue;
+      }
+
+      if (mode === 'auto-palette') {
+        grid[y][x] = mapColorToPalette(r, g, b, brightnessThreshold);
+      } else {
+        // 直接模式：存为 hex 颜色（扩展调色板）
+        grid[y][x] = '#' + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+      }
+    }
+  }
+  render(); updatePreviews();
+}
+
+function mapColorToPalette(r, g, b, threshold) {
+  // 计算亮度
+  const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+
+  if (brightness < threshold * 0.15) return 'K';       // 很暗 → 黑色
+  if (brightness < threshold * 0.4) return 's';         // 暗 → 暗灰蓝
+  if (brightness < threshold * 0.6) return 'S';         // 中暗 → 灰蓝
+  if (brightness < threshold * 0.8) return 'b';         // 中亮 → 暗蓝
+
+  // 亮色：按色相分类
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const saturation = max === 0 ? 0 : (max - min) / max;
+
+  if (saturation < 0.2) return 'W';                     // 低饱和 → 白色
+  if (saturation < 0.35) return 'B';                     // 中饱和 → 亮蓝
+
+  // 高饱和：判断色相
+  let hue;
+  if (max === min) hue = 0;
+  else if (max === r) hue = 60 * ((g - b) / (max - min));
+  else if (max === g) hue = 60 * (2 + (b - r) / (max - min));
+  else hue = 60 * (4 + (r - g) / (max - min));
+  if (hue < 0) hue += 360;
+
+  if (hue < 30 || hue >= 340) return 'R';               // 红
+  if (hue < 70) return 'Y';                              // 黄
+  if (hue < 50) return 'O';                              // 橙
+  if (hue < 180) return 'G';                             // 绿
+  if (hue < 260) return 'B';                             // 蓝
+  return 'B';                                            // 紫蓝
+}
+
+function applyImport() {
+  // 预览已经是实际数据了，直接确认
+  importedImageData = null;
+  document.getElementById('import-settings').style.display = 'none';
+  showToast('✅ 像素化已应用！可以继续手动微调');
+}
+
+function cancelImport() {
+  // 恢复到导入前（重新加载原版）
+  importedImageData = null;
+  document.getElementById('import-settings').style.display = 'none';
+  loadSpriteData(0, ORIGINAL_SPRITES[0]);
+  loadSpriteData(1, ORIGINAL_SPRITES[1]);
+  resizeCanvas(); render(); updatePreviews();
+  showToast('❌ 已取消导入');
+}
+
+// ========== 导出代码 ==========
+function exportCode() {
+  // 收集所有用到的颜色（包括自定义 hex）
+  const usedColors = new Set();
+  const isCustomColor = new Set();
+  frames.forEach(f => f.forEach(row => row.forEach(ch => {
+    if (ch !== '.') {
+      usedColors.add(ch);
+      if (ch.startsWith('#')) isCustomColor.add(ch);
+    }
+  })));
+
+  let cLines = [];
+  // 先加调色板里的
+  for (const [key, val] of Object.entries(C)) {
+    if (key === '.' || usedColors.has(key)) {
+      cLines.push('  ' + key + ": '" + val.color + "'");
+    }
+  }
+  // 加自定义颜色（分配新 key）
+  const customKeys = {};
+  let keyIdx = 1;
+  isCustomColor.forEach(hex => {
+    const k = 'c' + keyIdx++;
+    customKeys[hex] = k;
+    cLines.push('  ' + k + ": '" + hex + "'");
+  });
+
+  // 替换自定义颜色为 key
+  const sprite0 = frames[0].map(row => row.map(ch => customKeys[ch] || ch).join(''));
+  const sprite1 = frames[1].map(row => row.map(ch => customKeys[ch] || ch).join(''));
+
+  const code = `var SPRITES = [
+  [
+${sprite0.map(line => '    \'' + line + '\',').join('\n')}
+  ],
+  [
+${sprite1.map(line => '    \'' + line + '\',').join('\n')}
+  ]
+];`;
+
+  let note = '// 复制以上代码替换 player.js 中的 C 和 SPRITES 即可。';
+  if (gridW !== 27 || gridH !== 27) {
+    note += '\n// ⚠️ 尺寸已变为 ' + gridW + '×' + gridH + '，记得同步更新 PLAYER_W 和 PLAYER_H。';
+  }
+
+  const fullCode = `var C = {\n${cLines.join(',\n')}\n};\n\n` + code + '\n\n' + note;
+
+  document.getElementById('output').value = fullCode;
+  showToast('✅ 代码已生成！');
+}
+
+function copyCode() {
+  const ta = document.getElementById('output');
+  if (!ta.value.trim()) exportCode();
+  navigator.clipboard.writeText(ta.value).then(() => {
+    showToast('📋 已复制到剪贴板！');
+  }).catch(() => { ta.select(); document.execCommand('copy'); showToast('📋 已复制！'); });
+}
+
+function loadOriginal() {
+  importedImageData = null;
+  document.getElementById('import-settings').style.display = 'none';
+  loadSpriteData(0, ORIGINAL_SPRITES[0]);
+  loadSpriteData(1, ORIGINAL_SPRITES[1]);
+  currentFrame = 0;
+  document.getElementById('frame-0').classList.add('active');
+  document.getElementById('frame-1').classList.remove('active');
+  resizeCanvas(); render(); updatePreviews();
+  showToast('📥 已加载原版飞机');
+}
+
+// ========== Toast ==========
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ========== 快捷键 ==========
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === 'b') setTool('draw');
+  else if (k === 'e') setTool('erase');
+  else if (k === 'f') setTool('fill');
+  else if (k === 'i') setTool('pick');
+  else if (k === '1') switchFrame(0);
+  else if (k === '2') switchFrame(1);
+});
+
+// ========== 启动 ==========
+init();
+</script>
+</body>
+</html>
