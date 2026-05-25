@@ -1,0 +1,64 @@
+Popunder
+<script src="https://pl29501160.effectivecpmnetwork.com/b8/89/a3/b889a38ebaa78ce667425094a48b35c3.js"></script>
+
+Banner
+<script>
+  atOptions = {
+    'key' : 'bcb53f80e42b3fcbe5641c92391e472b',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/bcb53f80e42b3fcbe5641c92391e472b/invoke.js"></script>
+<script>
+  atOptions = {
+    'key' : '6c0a01ce5c7d2401c044fb4bb5e51674',
+    'format' : 'iframe',
+    'height' : 250,
+    'width' : 300,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/6c0a01ce5c7d2401c044fb4bb5e51674/invoke.js"></script>
+<script>
+  atOptions = {
+    'key' : 'baea52696e61571cb7556a83c2ccf836',
+    'format' : 'iframe',
+    'height' : 300,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/baea52696e61571cb7556a83c2ccf836/invoke.js"></script>
+<script>
+  atOptions = {
+    'key' : '9d62277d3c42f967b70426d6d4458cc1',
+    'format' : 'iframe',
+    'height' : 600,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/9d62277d3c42f967b70426d6d4458cc1/invoke.js"></script>
+<script>
+  atOptions = {
+    'key' : '0023da4b91e5eb822e7bc17f1764a242',
+    'format' : 'iframe',
+    'height' : 50,
+    'width' : 320,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/0023da4b91e5eb822e7bc17f1764a242/invoke.js"></script>
+<script>
+  atOptions = {
+    'key' : 'c4f6a3ee88365c9a20d2863c971c2fb5',
+    'format' : 'iframe',
+    'height' : 90,
+    'width' : 728,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highperformanceformat.com/c4f6a3ee88365c9a20d2863c971c2fb5/invoke.js"></script>
