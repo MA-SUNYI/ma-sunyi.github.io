@@ -1,0 +1,17 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <script>
+    // SPA fallback: store path and redirect to base
+    const base = "/comic-site";
+    const path = location.pathname.replace(base, "") || "/";
+    sessionStorage.setItem("spa-redirect", path + location.search + location.hash);
+    location.replace(base + "/");
+  </script>
+</head>
+<body>
+  <a href="/comic-site/">Go to Comic Site</a>
+</body>
+</html>
